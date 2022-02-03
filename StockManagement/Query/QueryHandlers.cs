@@ -6,35 +6,31 @@ using System.Threading.Tasks;
 
 namespace StockManagement.Query
 {
-    public class FindStockByIdQueryHandler
-        : IQueryHandler<FindStockByIdQuery, StockModel>
+
+
+    public class StockQueryHandler
+    : IQueryHandler<FindStockByIdQuery, FindStockByIdQueryResult>, IQueryHandler<GetAllStockQuery, GetAllStockQueryResult>
     {
         private readonly StockContext db;
 
-        public FindStockByIdQueryHandler(StockContext db)
+        public StockQueryHandler(StockContext db)
         {
             this.db = db;
         }
 
-        public StockModel Handle(FindStockByIdQuery query)
+        public FindStockByIdQueryResult Handle(FindStockByIdQuery query)
         {
-            return db.Stocks.FirstOrDefault(x=> x.Id == query.Id);
+            return new FindStockByIdQueryResult(db.Stocks.FirstOrDefault(x => x.Id == query.Id));
         }
+
+        public GetAllStockQueryResult Handle(GetAllStockQuery query)
+        {
+            return new GetAllStockQueryResult(db.Stocks.Where(x=> x.Status!="closed").ToArray());
+            
+        }
+
+ 
     }
 
-    public class GetAllStockQueryQueryHandler
-       : IQueryHandler<GetAllStockQuery, StockModel[]>
-    {
-        private readonly StockContext db;
 
-        public GetAllStockQueryQueryHandler(StockContext db)
-        {
-            this.db = db;
-        }
-
-        public StockModel[] Handle(GetAllStockQuery query)
-        {
-            return db.Stocks.ToArray();
-        }
-    }
 }

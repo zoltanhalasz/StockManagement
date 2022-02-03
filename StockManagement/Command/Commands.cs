@@ -15,7 +15,11 @@ namespace StockManagement.Command
     public class CreateStockCommand : ICommand
     {
         public StockModel CreateStock { get; set; }
+    }
 
+    public class DeleteStockCommand : ICommand
+    {
+        public Guid Id { get; set; }
     }
 
 }

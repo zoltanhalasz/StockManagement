@@ -14,6 +14,8 @@ using Microsoft.EntityFrameworkCore;
 using StockManagement.Query;
 using StockManagement.Command;
 
+using StockManagement.Events;
+
 namespace StockManagement
 {
     public class Startup
@@ -40,11 +42,23 @@ namespace StockManagement
                             .AllowAnyMethod();                            
                     });
             });
-            
-            services.AddScoped<IQueryHandler<GetAllStockQuery, StockModel[]>, GetAllStockQueryQueryHandler>();
-            services.AddScoped<IQueryHandler<FindStockByIdQuery, StockModel>, FindStockByIdQueryHandler>();
-            services.AddScoped<ICommandHandler<UpdateStockCommand>, UpdateStockCommandHandler>();
 
+            foreach (Type type in System.Reflection.Assembly.GetExecutingAssembly()
+                .GetTypes()
+                .Where(t => t.GetInterfaces().Any(i => i.Name.Contains("IQueryHandler") || i.Name.Contains("ICommandHandler"))))
+            {
+                foreach (var t in type.GetInterfaces())
+                {
+                    services.AddScoped(t, type);
+                }
+            }
+            
+            services.AddScoped<ITableStorageRepository, TableStorageRepository>();
+            services.AddScoped<IEventStore, EventStore>();
+            services.AddScoped<IQueryDispatcher, QueryDispatcher>();
+            services.AddScoped<ICommandDispatcher, CommandDispatcher>();
+      
+            
             services.AddRazorPages();
             services.AddControllers();
             services.AddDbContext<StockContext>(options =>

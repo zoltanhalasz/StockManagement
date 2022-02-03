@@ -6,14 +6,15 @@ using System.Threading.Tasks;
 
 namespace StockManagement.Query
 {
-    public class FindStockByIdQuery : IQuery<StockModel>
+    public class FindStockByIdQuery : IQuery<FindStockByIdQueryResult>
     {
         public Guid Id { get; set; }
         
     }
 
-    public class GetAllStockQuery : IQuery<StockModel[]>
+    public class GetAllStockQuery: IQuery<GetAllStockQueryResult>
     {
         
-    }
+    }    
+
 }

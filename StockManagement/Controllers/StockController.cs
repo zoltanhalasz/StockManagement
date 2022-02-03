@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using StockManagement.Command;
+using StockManagement.Events;
 using StockManagement.Models;
 using StockManagement.Query;
 using System;
@@ -15,54 +16,69 @@ namespace StockManagement.Controllers
     [ApiController]
     public class StockController : ControllerBase
     {        
-        IQueryHandler<GetAllStockQuery, StockModel[]> getAllStockQueryHandler;
-        IQueryHandler<FindStockByIdQuery, StockModel> findStockByIdQueryHandler;
-        ICommandHandler<UpdateStockCommand> updateStockCommandHandler;
-        public StockController(IQueryHandler<GetAllStockQuery, StockModel[]> getAllStockQueryHandler,
-            IQueryHandler<FindStockByIdQuery, StockModel> findStockByIdQueryHandler,
-            ICommandHandler<UpdateStockCommand> updateStockCommandHandler
+        IQueryDispatcher queryDispatcher;
+        ICommandDispatcher commandDispatcher;
+        ITableStorageRepository tableStorageRepository;
+        public StockController(
+            IQueryDispatcher queryDispatcher,
+            ICommandDispatcher commandDispatcher,
+            ITableStorageRepository tableStorageRepository
             )
         {            
-            this.getAllStockQueryHandler = getAllStockQueryHandler;
-            this.findStockByIdQueryHandler = findStockByIdQueryHandler;
-            this.updateStockCommandHandler = updateStockCommandHandler;
+
+            this.queryDispatcher = queryDispatcher;
+            this.commandDispatcher = commandDispatcher;
+            this.tableStorageRepository = tableStorageRepository;
         }
         // GET: api/<StockController>
         [HttpGet]
-        public IEnumerable<StockModel> GetAll()
+        public GetAllStockQueryResult GetAll()
         {
             GetAllStockQuery qry = new GetAllStockQuery();
-            return getAllStockQueryHandler.Handle(qry);            
+            return queryDispatcher.Dispatch<GetAllStockQuery, GetAllStockQueryResult>(qry);            
         }
 
         // GET api/<StockController>/5
-        [HttpGet("{id}")]
-        public StockModel Get(Guid Id)
+        [HttpGet("{id:Guid}")]
+        public FindStockByIdQueryResult Get(Guid id)
         {
-            FindStockByIdQuery qry = new FindStockByIdQuery() { Id = Id };
-            return this.findStockByIdQueryHandler.Handle(qry);
-            
+            FindStockByIdQuery qry = new FindStockByIdQuery() { Id = id };
+            return queryDispatcher.Dispatch<FindStockByIdQuery, FindStockByIdQueryResult>(qry);
         }
+
+        // GET api/<StockController>/5
+        [HttpGet("history/{id:Guid}")]
+        public async Task<IActionResult> GetHistory(Guid id)
+        {
+            return Ok(await tableStorageRepository.GetEventsByStockId(id));
+        }
+
 
         // POST api/<StockController>
         [HttpPost]
-        public IActionResult Post([FromBody] StockModel updateStock)
+        public IActionResult Post([FromBody] StockModel createStock)
         {
-            UpdateStockCommand command = new UpdateStockCommand() { UpdateStock = updateStock };
-            updateStockCommandHandler.Handle(command);
+            CreateStockCommand command = new CreateStockCommand() { CreateStock= createStock };
+            commandDispatcher.Dispatch(command);
             return NoContent();
         }
 
         // PUT api/<StockController>/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
+        [HttpPut]
+        public IActionResult Put([FromBody] StockModel updateStock)
         {
+            UpdateStockCommand command = new UpdateStockCommand() { UpdateStock = updateStock };
+            commandDispatcher.Dispatch(command);
+            return NoContent();
         }
 
         // DELETE api/<StockController>/5
         [HttpDelete("{id}")]
-        public void Delete(int id)
+        public IActionResult Delete(Guid id)
         {
+            DeleteStockCommand command = new DeleteStockCommand() { Id= id};
+            commandDispatcher.Dispatch(command);
+            return NoContent();
         }
     }
 }
