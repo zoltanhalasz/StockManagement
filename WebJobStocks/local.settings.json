@@ -1,0 +1,5 @@
+{
+  "Values": {
+    "ServiceBusConnection": "Endpoint=sb://zoltan-halasz-test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=HNMMcwc60PduObfPLPZ+750oPQfzXdJmVK+4mgnrDSk="
+  }
+}

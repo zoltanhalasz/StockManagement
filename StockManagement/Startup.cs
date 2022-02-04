@@ -52,13 +52,14 @@ namespace StockManagement
                     services.AddScoped(t, type);
                 }
             }
-            
+            services.AddScoped<IPublisher, Publisher>();
             services.AddScoped<ITableStorageRepository, TableStorageRepository>();
             services.AddScoped<IEventStore, EventStore>();
             services.AddScoped<IQueryDispatcher, QueryDispatcher>();
             services.AddScoped<ICommandDispatcher, CommandDispatcher>();
-      
-            
+   
+
+
             services.AddRazorPages();
             services.AddControllers();
             services.AddDbContext<StockContext>(options =>
