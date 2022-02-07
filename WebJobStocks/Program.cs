@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using StockManagement.Models;
 using WebJobStocks.Models;
@@ -12,30 +13,62 @@ namespace WebJobStocks
     class Program
     {
 
+
+
+        public static async Task Main(string[] args)
+        {
+            var services = new ServiceCollection();
+
+            // add necessary services
+
+            services.AddDbContext<StockContext>(options => options.UseSqlServer("Server=tcp:zozoserver.database.windows.net,1433;Initial Catalog=stockdb;Persist Security Info=False;User ID=zoltanhalasz;Password=Nyar18Zozo;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"));
+            services.AddScoped<IEventHandler, Models.EventHandler>();
+            services.AddScoped<IASBMessageProcessor, ASBMessageProcessor>();            
+            // build the pipeline
+            var provider = services.BuildServiceProvider();
+            var service = provider.GetRequiredService<IASBMessageProcessor>();
+            await service.Process();
+        }
+    }
+    public interface IASBMessageProcessor
+    {
+        Task Process();
+    }
+
+    public class ASBMessageProcessor: IASBMessageProcessor
+    {
         // connection string to your Service Bus namespace
-        static string connectionString = "Endpoint=sb://zoltan-halasz-test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=HNMMcwc60PduObfPLPZ+750oPQfzXdJmVK+4mgnrDSk=";
+        string connectionString = "Endpoint=sb://zoltan-halasz-test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=HNMMcwc60PduObfPLPZ+750oPQfzXdJmVK+4mgnrDSk=";
 
         // name of the Service Bus topic
-        static string topicName = "mytopic";
+        string topicName = "mytopic";
 
         // name of the subscription to the topic
-        static string subscriptionName = "S1";
+        string subscriptionName = "S1";
 
         // the client that owns the connection and can be used to create senders and receivers
-        static ServiceBusClient client;
+        ServiceBusClient client;
 
         // the processor that reads and processes messages from the subscription
-        static ServiceBusProcessor processor;        
+        ServiceBusProcessor processor;
+
+        private readonly IEventHandler eventHandler;
+        public ASBMessageProcessor(IEventHandler eventHandler)
+        {
+            this.eventHandler = eventHandler;
+        }
+
+
 
 
         // handle received messages
-        static async Task MessageHandler(ProcessMessageEventArgs args)
+         async Task MessageHandler(ProcessMessageEventArgs args)
         {
             string body = args.Message.Body.ToString();
             Console.WriteLine($"Received: {body} from subscription: {subscriptionName}");
 
             var type = typeof(PublishModel);
-            
+
             var publishModel = JsonConvert.DeserializeObject(body, type) as PublishModel;
             int i = publishModel.EventType.LastIndexOf('.');
             string newType = "WebJobStocks.Models." + publishModel.EventType.Substring(i + 1);
@@ -43,100 +76,24 @@ namespace WebJobStocks
             var eventDeserialized = JsonConvert.DeserializeObject(publishModel.Payload, type) as IEvent;
             Console.WriteLine(eventDeserialized as IEvent);
 
-            var options = new DbContextOptionsBuilder<StockContext>();
-            options.UseSqlServer("Server=tcp:zozoserver.database.windows.net,1433;Initial Catalog=stockdb;Persist Security Info=False;User ID=zoltanhalasz;Password=Nyar18Zozo;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;");
+            //var options = new DbContextOptionsBuilder<StockContext>();
+            //options.UseSqlServer("Server=tcp:zozoserver.database.windows.net,1433;Initial Catalog=stockdb;Persist Security Info=False;User ID=zoltanhalasz;Password=Nyar18Zozo;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;");
 
-            var db = new StockContext(options.Options);
+            //var db = new StockContext(options.Options);
 
-            if (eventDeserialized is StockCreated)
-            {
-                var addStock = (eventDeserialized as StockCreated).Stock;                
-                db.Stocks.Add(addStock);
-                db.SaveChanges();            
-            }
-
-            if (eventDeserialized is StockUpdated)
-            {
-                db.Stocks.Update((eventDeserialized as StockUpdated).Stock);
-                db.SaveChanges();
-            }
-
-            if (eventDeserialized is StockDeleted)
-            {
-                var dbEntity = await db.Stocks.FirstOrDefaultAsync(x => x.Id == (eventDeserialized as StockDeleted).Id);
-                if (dbEntity!=null)
-                {
-                    dbEntity.Quantity = 0;
-                    dbEntity.Status = "closed";
-                    dbEntity.Location = string.Empty;
-                    db.Stocks.Update(dbEntity);
-                    db.SaveChanges();
-                }
-                
-            }
-
-            if (eventDeserialized is SupplierCreated)
-            {
-                var addSupplier = (eventDeserialized as SupplierCreated).Supplier;
-                db.Suppliers.Add(addSupplier);
-                db.SaveChanges();
-            }
-
-            if (eventDeserialized is SupplierUpdated)
-            {
-                db.Suppliers.Update((eventDeserialized as SupplierUpdated).Supplier);
-                db.SaveChanges();
-            }
-
-            if (eventDeserialized is SupplierDeleted)
-            {
-                var dbEntity = await db.Suppliers.FirstOrDefaultAsync(x => x.Id == (eventDeserialized as SupplierDeleted).SupplierId);
-                if (dbEntity != null)
-                {                    
-                    db.Suppliers.Remove(dbEntity);
-                    db.SaveChanges();
-                }
-                var dbSupplierStockEntities = await db.SupplierStocks.Where(x => x.SupplierId == (eventDeserialized as SupplierDeleted).SupplierId).ToListAsync();
-                if (dbSupplierStockEntities!=null)
-                {
-                    db.SupplierStocks.RemoveRange(dbSupplierStockEntities);
-                    db.SaveChanges();
-                }
-            }
-
-            if (eventDeserialized is StockAddedToSupplier)
-            {
-                var dbEntity = await db.SupplierStocks.FirstOrDefaultAsync(x => x.SupplierId == (eventDeserialized as StockAddedToSupplier).SupplierId && x.StockId == (eventDeserialized as StockAddedToSupplier).StockId);
-                if (dbEntity == null)
-                {
-                    db.SupplierStocks.Add(new SupplierStock() { SupplierId = (eventDeserialized as StockAddedToSupplier).SupplierId, StockId = (eventDeserialized as StockAddedToSupplier).StockId });
-                    db.SaveChanges();
-                }
-
-            }
-
-            if (eventDeserialized is StockRemovedFromSupplier)
-            {
-                var dbEntity = await db.SupplierStocks.FirstOrDefaultAsync(x => x.SupplierId == (eventDeserialized as StockRemovedFromSupplier).SupplierId && x.StockId == (eventDeserialized as StockRemovedFromSupplier).StockId);
-                if (dbEntity != null)
-                {
-                    db.SupplierStocks.Remove(dbEntity);
-                    db.SaveChanges();
-                }
-
-            }
+            await eventHandler.Handle(eventDeserialized);
             // complete the message. messages is deleted from the subscription. 
             await args.CompleteMessageAsync(args.Message);
         }
 
         // handle any errors when receiving messages
-        static Task ErrorHandler(ProcessErrorEventArgs args)
+        Task ErrorHandler(ProcessErrorEventArgs args)
         {
             Console.WriteLine(args.Exception.ToString());
             return Task.CompletedTask;
         }
 
-        public static async Task Main(string[] args)
+        public async Task Process()
         {
             // The Service Bus client types are safe to cache and use as a singleton for the lifetime
             // of the application, which is best practice when messages are being published or read
@@ -175,4 +132,5 @@ namespace WebJobStocks
             }
         }
     }
+
 }
