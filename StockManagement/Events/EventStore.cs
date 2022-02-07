@@ -11,7 +11,10 @@ namespace StockManagement.Events
     public interface IEventStore
     {
         void Save(StockAggregate aggr);
-        Task<StockAggregate> GetAggregateByID(Guid id);
+
+        void Save(SupplierAggregate aggr);
+        Task<StockAggregate> GetStockAggregateByID(Guid id);
+        Task<SupplierAggregate> GetSupplierAggregateByID(Guid id);
     }
     public class EventStore : IEventStore
     {
@@ -27,18 +30,39 @@ namespace StockManagement.Events
             {                
                 var partitionkey = aggr.Id.ToString();
                 var rowKey = partitionkey + "-" + rnd.Next();
-                await tstorage.AddStockEvent(partitionkey, rowKey, Newtonsoft.Json.JsonConvert.SerializeObject(myevent), myevent.GetType().ToString());
+                await tstorage.AddEvent(partitionkey, rowKey, Newtonsoft.Json.JsonConvert.SerializeObject(myevent), myevent.GetType().ToString());
             }
             
         }
 
-        public async Task<StockAggregate> GetAggregateByID(Guid id)
+        public async void Save(SupplierAggregate aggr)
         {
-            var tableStorageEntityList = await tstorage.GetEventsByStockId(id);
+            var rnd = new Random();
+            foreach (var myevent in aggr.PendingEvents)
+            {
+                var partitionkey = aggr.Id.ToString();
+                var rowKey = partitionkey + "-" + rnd.Next();
+                await tstorage.AddEvent(partitionkey, rowKey, Newtonsoft.Json.JsonConvert.SerializeObject(myevent), myevent.GetType().ToString());
+            }
+
+        }
+
+        public async Task<StockAggregate> GetStockAggregateByID(Guid id)
+        {
+            var tableStorageEntityList = await tstorage.GetEventsById(id);
             var eventList = ConvertTableEntityListToEventList(tableStorageEntityList);
             var stockAggr= new StockAggregate();
             stockAggr.ReconstituteFromHistory(eventList);
             return stockAggr;
+        }
+
+        public async Task<SupplierAggregate> GetSupplierAggregateByID(Guid id)
+        {
+            var tableStorageEntityList = await tstorage.GetEventsById(id);
+            var eventList = ConvertTableEntityListToEventList(tableStorageEntityList);
+            var supplAggr = new SupplierAggregate();
+            supplAggr.ReconstituteFromHistory(eventList);
+            return supplAggr;
         }
         private IEnumerable<IEvent> ConvertTableEntityListToEventList(IEnumerable<TableStorageEntity> inputTable)
         {

@@ -14,12 +14,12 @@ namespace StockManagement.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class StockController : ControllerBase
+    public class SupplierController : ControllerBase
     {        
         IQueryDispatcher queryDispatcher;
         ICommandDispatcher commandDispatcher;
         ITableStorageRepository tableStorageRepository;
-        public StockController(
+        public SupplierController(
             IQueryDispatcher queryDispatcher,
             ICommandDispatcher commandDispatcher,
             ITableStorageRepository tableStorageRepository
@@ -32,18 +32,18 @@ namespace StockManagement.Controllers
         }
         // GET: api/<StockController>
         [HttpGet]
-        public GetAllStockQueryResult GetAll()
+        public GetAllSuppliersQueryResult GetAll()
         {
-            GetAllStockQuery qry = new GetAllStockQuery();
-            return queryDispatcher.Dispatch<GetAllStockQuery, GetAllStockQueryResult>(qry);            
+            GetAllSuppliersQuery qry = new GetAllSuppliersQuery();
+            return queryDispatcher.Dispatch<GetAllSuppliersQuery, GetAllSuppliersQueryResult>(qry);            
         }
 
         // GET api/<StockController>/5
         [HttpGet("{id:Guid}")]
-        public FindStockByIdQueryResult Get(Guid id)
+        public FindSupplierByIdQueryResult Get(Guid id)
         {
-            FindStockByIdQuery qry = new FindStockByIdQuery() { Id = id };
-            return queryDispatcher.Dispatch<FindStockByIdQuery, FindStockByIdQueryResult>(qry);
+            FindSupplierByIdQuery qry = new FindSupplierByIdQuery() { Id = id };
+            return queryDispatcher.Dispatch<FindSupplierByIdQuery, FindSupplierByIdQueryResult>(qry);
         }
 
         // GET api/<StockController>/5
@@ -56,19 +56,34 @@ namespace StockManagement.Controllers
 
         // POST api/<StockController>
         [HttpPost]
-        public IActionResult Post([FromBody] StockModel createStock)
+        public IActionResult Post([FromBody] SupplierModel createSupplier)
         {
-            CreateStockCommand command = new CreateStockCommand() { CreateStock= createStock };
+            CreateSupplierCommand command = new CreateSupplierCommand() { CreateSupplier= createSupplier};
             commandDispatcher.Dispatch(command);
             return NoContent();
         }
 
+        [HttpPost("addstocktosupplier")]
+        public IActionResult AddStockToSupplier([FromBody] SupplierStock supplStock)
+        {
+            AddStockToSupplierCommand command = new AddStockToSupplierCommand() { SupplierId = supplStock.SupplierId, StockId = supplStock.StockId };
+            commandDispatcher.Dispatch(command);
+            return NoContent();
+        }
+
+        [HttpPost("removestockfromsupplier")]
+        public IActionResult RemoveStockFromSupplier([FromBody] SupplierStock supplStock)
+        {
+            RemoveStockFromSupplierCommand command = new RemoveStockFromSupplierCommand() { SupplierId = supplStock.SupplierId, StockId = supplStock.StockId };
+            commandDispatcher.Dispatch(command);
+            return NoContent();
+        }
 
         // PUT api/<StockController>/5
         [HttpPut]
-        public IActionResult Put([FromBody] StockModel updateStock)
+        public IActionResult Put([FromBody] SupplierModel updateSupplier)
         {
-            UpdateStockCommand command = new UpdateStockCommand() { UpdateStock = updateStock };
+            UpdateSupplierCommand command = new UpdateSupplierCommand() { UpdateSupplier = updateSupplier };
             commandDispatcher.Dispatch(command);
             return NoContent();
         }
@@ -77,7 +92,7 @@ namespace StockManagement.Controllers
         [HttpDelete("{id}")]
         public IActionResult Delete(Guid id)
         {
-            DeleteStockCommand command = new DeleteStockCommand() { Id= id};
+            DeleteSupplierCommand command = new DeleteSupplierCommand() { SupplierId= id};
             commandDispatcher.Dispatch(command);
             return NoContent();
         }

@@ -8,12 +8,13 @@ namespace StockManagement.Query
 {
 
 
-    public class StockQueryHandler
-    : IQueryHandler<FindStockByIdQuery, FindStockByIdQueryResult>, IQueryHandler<GetAllStockQuery, GetAllStockQueryResult>
+    public class QueryHandler
+    : IQueryHandler<FindStockByIdQuery, FindStockByIdQueryResult>, IQueryHandler<GetAllStockQuery, GetAllStockQueryResult>,
+        IQueryHandler<FindSupplierByIdQuery, FindSupplierByIdQueryResult>, IQueryHandler<GetAllSuppliersQuery, GetAllSuppliersQueryResult>
     {
         private readonly StockContext db;
 
-        public StockQueryHandler(StockContext db)
+        public QueryHandler(StockContext db)
         {
             this.db = db;
         }
@@ -28,8 +29,17 @@ namespace StockManagement.Query
             return new GetAllStockQueryResult(db.Stocks.Where(x=> x.Status!="closed").ToArray());
             
         }
+        public FindSupplierByIdQueryResult Handle(FindSupplierByIdQuery query)
+        {
+            return new FindSupplierByIdQueryResult(db.Suppliers.FirstOrDefault(x => x.Id == query.Id));
+        }
 
- 
+        public GetAllSuppliersQueryResult Handle(GetAllSuppliersQuery query)
+        {
+            return new GetAllSuppliersQueryResult(db.Suppliers.ToArray());
+
+        }
+
     }
 
 

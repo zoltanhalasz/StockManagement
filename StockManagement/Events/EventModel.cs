@@ -22,4 +22,32 @@ namespace StockManagement.Events
     {
         public Guid Id { get; set; }
     }
+
+    public class SupplierCreated : IEvent
+    {
+        public SupplierModel Supplier { get; set; }
+    }
+    public class SupplierUpdated : IEvent
+    {
+        public SupplierModel Supplier { get; set; }
+    }
+
+    public class SupplierDeleted : IEvent
+    {
+        public Guid SupplierId { get; set; }
+    }
+
+    public class StockAddedToSupplier : IEvent
+    {
+        public Guid SupplierId { get; set; }
+
+        public Guid StockId { get; set; }
+    }
+
+    public class StockRemovedFromSupplier : IEvent
+    {
+        public Guid SupplierId { get; set; }
+
+        public Guid StockId { get; set; }
+    }
 }

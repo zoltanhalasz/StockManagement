@@ -20,4 +20,18 @@ namespace WebJobStocks.Models
     }
 
 
+    public class SupplierModel
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; }
+        public string Address { get; set; }
+        
+    }
+
+    public class SupplierStock
+    {
+        public Guid SupplierId { get; set; }
+        public Guid StockId { get; set; }
+    }
+
 }

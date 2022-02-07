@@ -30,4 +30,26 @@ namespace StockManagement.Query
         }
  
     }
+
+    public class FindSupplierByIdQueryResult : IQueryResult
+    {
+        public SupplierModel Supplier{ get; set; }
+
+        public FindSupplierByIdQueryResult(SupplierModel Supplier)
+        {
+            this.Supplier = Supplier;
+        }
+    }
+
+    public class GetAllSuppliersQueryResult : IQueryResult
+    {
+        public SupplierModel[] Suppliers { get; set; }
+
+        public GetAllSuppliersQueryResult(SupplierModel[] Suppliers)
+        {
+            this.Suppliers = Suppliers;
+        }
+
+    }
+
 }

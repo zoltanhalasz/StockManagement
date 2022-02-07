@@ -9,13 +9,15 @@ using System.Threading.Tasks;
 namespace StockManagement.Command
 
 {
-    public class StockCommandHandler
-        : ICommandHandler<CreateStockCommand>, ICommandHandler<UpdateStockCommand>, ICommandHandler<DeleteStockCommand>
+    public class CommandHandler
+        : ICommandHandler<CreateStockCommand>, ICommandHandler<UpdateStockCommand>, ICommandHandler<DeleteStockCommand>,
+         ICommandHandler<CreateSupplierCommand>, ICommandHandler<UpdateSupplierCommand>, ICommandHandler<DeleteSupplierCommand>,
+        ICommandHandler<AddStockToSupplierCommand>, ICommandHandler<RemoveStockFromSupplierCommand>
     {
         private readonly StockContext db;
         private readonly IEventStore eventstore;
         private readonly IPublisher publisher;
-        public StockCommandHandler(StockContext db, IEventStore eventstore, IPublisher publisher)
+        public CommandHandler(StockContext db, IEventStore eventstore, IPublisher publisher)
         {
             this.db = db;
             this.eventstore = eventstore;
@@ -24,8 +26,7 @@ namespace StockManagement.Command
 
         public async void Handle(CreateStockCommand command)
         {
-            //db.Stocks.Add(command.CreateStock);
-            //db.SaveChanges();
+
             command.CreateStock.Id = Guid.NewGuid();
             var stockAggr = new StockAggregate(command.CreateStock.Id);
             stockAggr.Create(command);
@@ -38,9 +39,8 @@ namespace StockManagement.Command
         }
         public async void Handle(UpdateStockCommand command)
         {
-            //db.Stocks.Update(command.UpdateStock);
-            //db.SaveChanges();                       
-            var stockAggr = await eventstore.GetAggregateByID(command.UpdateStock.Id);
+                    
+            var stockAggr = await eventstore.GetStockAggregateByID(command.UpdateStock.Id);
             stockAggr.Update(command);
             eventstore.Save(stockAggr);
             foreach (var pEvent in stockAggr.PendingEvents)
@@ -63,20 +63,79 @@ namespace StockManagement.Command
         }
         public async void Handle(DeleteStockCommand command)
         {
-            //var dbEntity = db.Stocks.FirstOrDefault(x => x.Id == command.Id);
-            //if (dbEntity !=null)
-            //{
-            //    dbEntity.Status = "closed";
-            //    db.Stocks.Update(dbEntity);
-            //    db.SaveChanges();
-               
 
-            //}
             DeleteStockCommand cmd = new DeleteStockCommand { Id = command.Id };
-            var stockAggr = await eventstore.GetAggregateByID(cmd.Id);
+            var stockAggr = await eventstore.GetStockAggregateByID(cmd.Id);
             stockAggr.Delete(cmd);
             eventstore.Save(stockAggr);
             foreach (var pEvent in stockAggr.PendingEvents)
+            {
+                await publisher.Publish(GetPublishModelString(pEvent));
+            }
+
+        }
+
+        public async void Handle(DeleteSupplierCommand command)
+        {
+
+            DeleteSupplierCommand cmd = new DeleteSupplierCommand { SupplierId = command.SupplierId };
+            var supplAggr = await eventstore.GetSupplierAggregateByID(cmd.SupplierId);
+            supplAggr.Delete(cmd);
+            eventstore.Save(supplAggr);
+            foreach (var pEvent in supplAggr.PendingEvents)
+            {
+                await publisher.Publish(GetPublishModelString(pEvent));
+            }
+
+        }
+
+        public async void Handle(CreateSupplierCommand command)
+        {
+            command.CreateSupplier.Id = Guid.NewGuid();
+            CreateSupplierCommand cmd = new CreateSupplierCommand { CreateSupplier = command.CreateSupplier };
+            var supplAggr = new SupplierAggregate(cmd.CreateSupplier.Id);
+            supplAggr.Create(command);
+            eventstore.Save(supplAggr);
+            foreach (var pEvent in supplAggr.PendingEvents)
+            {
+                await publisher.Publish(GetPublishModelString(pEvent));
+            }
+
+        }
+
+        public async void Handle(UpdateSupplierCommand command)
+        {
+
+            var supplierAggr = await eventstore.GetSupplierAggregateByID(command.UpdateSupplier.Id);
+            supplierAggr.Update(command);
+            eventstore.Save(supplierAggr);
+            foreach (var pEvent in supplierAggr.PendingEvents)
+            {
+                await publisher.Publish(GetPublishModelString(pEvent));
+            }
+
+        }
+
+        public async void Handle(AddStockToSupplierCommand command)
+        {
+
+            var supplierAggr = await eventstore.GetSupplierAggregateByID(command.SupplierId);
+            supplierAggr.AddStockToSupplier(command);
+            eventstore.Save(supplierAggr);
+            foreach (var pEvent in supplierAggr.PendingEvents)
+            {
+                await publisher.Publish(GetPublishModelString(pEvent));
+            }
+
+        }
+
+        public async void Handle(RemoveStockFromSupplierCommand command)
+        {
+
+            var supplierAggr = await eventstore.GetSupplierAggregateByID(command.SupplierId);
+            supplierAggr.RemoveStockFromSupplier(command);
+            eventstore.Save(supplierAggr);
+            foreach (var pEvent in supplierAggr.PendingEvents)
             {
                 await publisher.Publish(GetPublishModelString(pEvent));
             }

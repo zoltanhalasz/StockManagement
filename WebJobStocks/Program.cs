@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using Microsoft.EntityFrameworkCore;
@@ -24,7 +25,8 @@ namespace WebJobStocks
         static ServiceBusClient client;
 
         // the processor that reads and processes messages from the subscription
-        static ServiceBusProcessor processor;
+        static ServiceBusProcessor processor;        
+
 
         // handle received messages
         static async Task MessageHandler(ProcessMessageEventArgs args)
@@ -71,6 +73,57 @@ namespace WebJobStocks
                     db.SaveChanges();
                 }
                 
+            }
+
+            if (eventDeserialized is SupplierCreated)
+            {
+                var addSupplier = (eventDeserialized as SupplierCreated).Supplier;
+                db.Suppliers.Add(addSupplier);
+                db.SaveChanges();
+            }
+
+            if (eventDeserialized is SupplierUpdated)
+            {
+                db.Suppliers.Update((eventDeserialized as SupplierUpdated).Supplier);
+                db.SaveChanges();
+            }
+
+            if (eventDeserialized is SupplierDeleted)
+            {
+                var dbEntity = await db.Suppliers.FirstOrDefaultAsync(x => x.Id == (eventDeserialized as SupplierDeleted).SupplierId);
+                if (dbEntity != null)
+                {                    
+                    db.Suppliers.Remove(dbEntity);
+                    db.SaveChanges();
+                }
+                var dbSupplierStockEntities = await db.SupplierStocks.Where(x => x.SupplierId == (eventDeserialized as SupplierDeleted).SupplierId).ToListAsync();
+                if (dbSupplierStockEntities!=null)
+                {
+                    db.SupplierStocks.RemoveRange(dbSupplierStockEntities);
+                    db.SaveChanges();
+                }
+            }
+
+            if (eventDeserialized is StockAddedToSupplier)
+            {
+                var dbEntity = await db.SupplierStocks.FirstOrDefaultAsync(x => x.SupplierId == (eventDeserialized as StockAddedToSupplier).SupplierId && x.StockId == (eventDeserialized as StockAddedToSupplier).StockId);
+                if (dbEntity == null)
+                {
+                    db.SupplierStocks.Add(new SupplierStock() { SupplierId = (eventDeserialized as StockAddedToSupplier).SupplierId, StockId = (eventDeserialized as StockAddedToSupplier).StockId });
+                    db.SaveChanges();
+                }
+
+            }
+
+            if (eventDeserialized is StockRemovedFromSupplier)
+            {
+                var dbEntity = await db.SupplierStocks.FirstOrDefaultAsync(x => x.SupplierId == (eventDeserialized as StockRemovedFromSupplier).SupplierId && x.StockId == (eventDeserialized as StockRemovedFromSupplier).StockId);
+                if (dbEntity != null)
+                {
+                    db.SupplierStocks.Remove(dbEntity);
+                    db.SaveChanges();
+                }
+
             }
             // complete the message. messages is deleted from the subscription. 
             await args.CompleteMessageAsync(args.Message);

@@ -27,8 +27,8 @@ namespace StockManagement.Events
     }
     public interface ITableStorageRepository
     {
-        Task AddStockEvent(string partitionkey, string rowkey, string payload, string type);
-        Task<IEnumerable<TableStorageEntity>> GetEventsByStockId(Guid Id);
+        Task AddEvent(string partitionkey, string rowkey, string payload, string type);
+        Task<IEnumerable<TableStorageEntity>> GetEventsById(Guid Id);
     }
     public class TableStorageRepository : ITableStorageRepository
     {
@@ -44,7 +44,7 @@ namespace StockManagement.Events
             Console.WriteLine("Table {0} created", table.Name);
         }
 
-        public async Task AddStockEvent(string partitionkey, string rowkey, string payload, string type)
+        public async Task AddEvent(string partitionkey, string rowkey, string payload, string type)
         {
             var storageaccount = CloudStorageAccount.Parse(StorageAccountConnectionString);
             var tableClient = storageaccount.CreateCloudTableClient();
@@ -57,7 +57,7 @@ namespace StockManagement.Events
             
         }
 
-        public async Task <IEnumerable<TableStorageEntity>> GetEventsByStockId(Guid id)
+        public async Task <IEnumerable<TableStorageEntity>> GetEventsById(Guid id)
         {
             var storageaccount = CloudStorageAccount.Parse(StorageAccountConnectionString);
             var tableClient = storageaccount.CreateCloudTableClient();

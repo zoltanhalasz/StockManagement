@@ -15,6 +15,16 @@ namespace StockManagement.Query
     public class GetAllStockQuery: IQuery<GetAllStockQueryResult>
     {
         
-    }    
+    }
 
+    public class FindSupplierByIdQuery : IQuery<FindSupplierByIdQueryResult>
+    {
+        public Guid Id { get; set; }
+
+    }
+
+    public class GetAllSuppliersQuery : IQuery<GetAllSuppliersQueryResult>
+    {
+
+    }
 }
