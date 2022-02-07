@@ -8,11 +8,9 @@ using System.Threading.Tasks;
 namespace StockManagement.Aggregates
 {
 
-    public class SupplierAggregate
+    public class SupplierAggregate : AggregateRoot
     {
-        public List<IEvent> PendingEvents { get; set; } = new List<IEvent>();
-        public List<IEvent> AllEvents { get; set; } = new List<IEvent>();
-        public Guid Id { get; set; }
+
         public string Name { get; set; }
 
         public string Address { get; set; }
@@ -25,7 +23,12 @@ namespace StockManagement.Aggregates
 
         public SupplierAggregate()
         {
-            
+            Handlers = new Dictionary<Type, Action<IEvent>>();
+            Handlers.Add(typeof(SupplierCreated), (x) => Handle(x as SupplierCreated));
+            Handlers.Add(typeof(SupplierDeleted), (x) => Handle(x as SupplierDeleted));
+            Handlers.Add(typeof(SupplierUpdated), (x) => Handle(x as SupplierUpdated));
+            Handlers.Add(typeof(StockAddedToSupplier), (x) => Handle(x as StockAddedToSupplier));
+            Handlers.Add(typeof(StockRemovedFromSupplier), (x) => Handle(x as StockRemovedFromSupplier));
         }
         public void Create(CreateSupplierCommand command)
         {
@@ -118,13 +121,6 @@ namespace StockManagement.Aggregates
 
         private void Handle(StockRemovedFromSupplier @event)
         {
-        }
-        public void ReconstituteFromHistory(IEnumerable<IEvent> supplEvents)
-        {
-            foreach (var supplEvent in supplEvents)
-            {
-                HandleEvent(supplEvent);
-            }
         }
     }
 }

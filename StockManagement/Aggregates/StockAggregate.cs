@@ -7,12 +7,32 @@ using System.Threading.Tasks;
 
 namespace StockManagement.Aggregates
 {
+    public interface IAggregate
+    {
+        List<IEvent> PendingEvents { get; set; }
+        List<IEvent> AllEvents { get; set; }
+        Guid Id { get; set; }
+        void ReconstituteFromHistory(IEnumerable<IEvent> stockEvents);  
+        Dictionary<Type, Action<IEvent>> Handlers { get; set; }
+    }
 
-    public class StockAggregate
+    public class AggregateRoot: IAggregate
     {
         public List<IEvent> PendingEvents { get; set; } = new List<IEvent>();
         public List<IEvent> AllEvents { get; set; } = new List<IEvent>();
         public Guid Id { get; set; }
+        public void ReconstituteFromHistory(IEnumerable<IEvent> stockEvents)
+        {
+            foreach (var stocEvent in stockEvents)
+            {
+                Handlers[stocEvent.GetType()] (stocEvent);
+            }
+        }
+        public Dictionary<Type, Action<IEvent>> Handlers { get; set; }
+    }
+
+    public class StockAggregate : AggregateRoot
+    {
         public string LicensePlate { get; set; }
         public string Item { get; set; }
         public string Location { get; set; }
@@ -22,7 +42,7 @@ namespace StockManagement.Aggregates
         public DateTime ExpiryDate { get; set; }
         public decimal Quantity { get; set; }
 
-
+        
         public StockAggregate(Guid id)
         {
             this.Id = id;
@@ -30,7 +50,10 @@ namespace StockManagement.Aggregates
 
         public StockAggregate()
         {
-            
+            Handlers = new Dictionary<Type, Action<IEvent>>();
+            Handlers.Add(typeof(StockCreated), (x) => Handle(x as StockCreated));
+            Handlers.Add(typeof(StockUpdated), (x) => Handle(x as StockUpdated));
+            Handlers.Add(typeof(StockDeleted), (x) => Handle(x as StockDeleted));
         }
         public void Create(CreateStockCommand command)
         {
@@ -52,22 +75,6 @@ namespace StockManagement.Aggregates
             var @event = new StockDeleted { Id = command.Id};
             PendingEvents.Add(@event);
             AllEvents.Add(@event);
-        }
-
-        private void HandleEvent(IEvent stockEvent)
-        {
-            if (stockEvent is StockCreated)
-            {
-                Handle(stockEvent as StockCreated);
-            }
-            if (stockEvent is StockUpdated)
-            {
-                Handle(stockEvent as StockUpdated);
-            }
-            if (stockEvent is StockDeleted)
-            {
-                Handle(stockEvent as StockDeleted);
-            }
         }
 
 
@@ -103,12 +110,6 @@ namespace StockManagement.Aggregates
             Quantity = 0;
             Location = string.Empty;
         }
-        public void ReconstituteFromHistory(IEnumerable<IEvent> stockEvents)
-        {
-            foreach (var stocEvent in stockEvents)
-            {
-                HandleEvent(stocEvent);
-            }
-        }
+ 
     }
 }

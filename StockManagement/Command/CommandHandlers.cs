@@ -40,7 +40,7 @@ namespace StockManagement.Command
         public async void Handle(UpdateStockCommand command)
         {
                     
-            var stockAggr = await eventstore.GetStockAggregateByID(command.UpdateStock.Id);
+            var stockAggr = await eventstore.GetAggregateByID<StockAggregate>(command.UpdateStock.Id);
             stockAggr.Update(command);
             eventstore.Save(stockAggr);
             foreach (var pEvent in stockAggr.PendingEvents)
@@ -65,7 +65,7 @@ namespace StockManagement.Command
         {
 
             DeleteStockCommand cmd = new DeleteStockCommand { Id = command.Id };
-            var stockAggr = await eventstore.GetStockAggregateByID(cmd.Id);
+            var stockAggr = await eventstore.GetAggregateByID<StockAggregate>(cmd.Id);
             stockAggr.Delete(cmd);
             eventstore.Save(stockAggr);
             foreach (var pEvent in stockAggr.PendingEvents)
@@ -79,7 +79,7 @@ namespace StockManagement.Command
         {
 
             DeleteSupplierCommand cmd = new DeleteSupplierCommand { SupplierId = command.SupplierId };
-            var supplAggr = await eventstore.GetSupplierAggregateByID(cmd.SupplierId);
+            var supplAggr = await eventstore.GetAggregateByID<SupplierAggregate>(cmd.SupplierId);
             supplAggr.Delete(cmd);
             eventstore.Save(supplAggr);
             foreach (var pEvent in supplAggr.PendingEvents)
@@ -106,7 +106,7 @@ namespace StockManagement.Command
         public async void Handle(UpdateSupplierCommand command)
         {
 
-            var supplierAggr = await eventstore.GetSupplierAggregateByID(command.UpdateSupplier.Id);
+            var supplierAggr = await eventstore.GetAggregateByID<SupplierAggregate>(command.UpdateSupplier.Id);
             supplierAggr.Update(command);
             eventstore.Save(supplierAggr);
             foreach (var pEvent in supplierAggr.PendingEvents)
@@ -119,7 +119,7 @@ namespace StockManagement.Command
         public async void Handle(AddStockToSupplierCommand command)
         {
 
-            var supplierAggr = await eventstore.GetSupplierAggregateByID(command.SupplierId);
+            var supplierAggr = await eventstore.GetAggregateByID<SupplierAggregate>(command.SupplierId);
             supplierAggr.AddStockToSupplier(command);
             eventstore.Save(supplierAggr);
             foreach (var pEvent in supplierAggr.PendingEvents)
@@ -132,7 +132,7 @@ namespace StockManagement.Command
         public async void Handle(RemoveStockFromSupplierCommand command)
         {
 
-            var supplierAggr = await eventstore.GetSupplierAggregateByID(command.SupplierId);
+            var supplierAggr = await eventstore.GetAggregateByID<SupplierAggregate>(command.SupplierId);
             supplierAggr.RemoveStockFromSupplier(command);
             eventstore.Save(supplierAggr);
             foreach (var pEvent in supplierAggr.PendingEvents)
