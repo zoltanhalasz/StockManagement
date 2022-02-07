@@ -68,32 +68,6 @@ namespace StockManagement.Aggregates
         }
 
 
-
-        private void HandleEvent(IEvent supplEvent)
-        {
-            if (supplEvent is SupplierCreated)
-            {
-                Handle(supplEvent as SupplierCreated);
-            }
-            if (supplEvent is SupplierUpdated)
-            {
-                Handle(supplEvent as SupplierUpdated);
-            }
-            if (supplEvent is SupplierDeleted)
-            {
-                Handle(supplEvent as SupplierDeleted);
-            }
-            if (supplEvent is StockAddedToSupplier)
-            {
-                Handle(supplEvent as StockAddedToSupplier);
-            }
-            if (supplEvent is StockRemovedFromSupplier)
-            {
-                Handle(supplEvent as StockRemovedFromSupplier);
-            }
-        }
-
-
         private void Handle(SupplierCreated @event)
         {
             Id = @event.Supplier.Id;
